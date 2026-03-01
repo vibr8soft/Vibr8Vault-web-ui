@@ -104,8 +104,24 @@ function UserTokenView({ token }: { token: string | null }) {
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={() => {
-                    navigator.clipboard.writeText(`vv config set-token ${token}`);
+                  onClick={async () => {
+                    try {
+                      const text = `vv config set-token ${token}`;
+                      if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(text);
+                      } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                      }
+                    } catch {
+                      // Clipboard write failed
+                    }
                   }}
                   title="Copy to clipboard"
                 >
