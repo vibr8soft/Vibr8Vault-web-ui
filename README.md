@@ -113,6 +113,164 @@ services:
       - vibr8vault
 ```
 
+## Full Ubuntu Server Deployment
+
+A step-by-step guide to deploy Vibr8Vault Web UI on a fresh Ubuntu 22.04+ server with Nginx and systemd.
+
+### Prerequisites
+
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 20 (LTS)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify versions
+node -v   # v20.x.x
+npm -v    # 10.x.x
+
+# Install Nginx
+sudo apt install -y nginx
+```
+
+### 1. Download the Vibr8Vault backend
+
+Download the latest release binary for your architecture:
+
+```bash
+# Example — replace with actual release URL
+curl -fsSL https://github.com/vibr8soft/Vibr8Vault/releases/latest/download/vibr8vault-linux-amd64 \
+  -o /usr/local/bin/vibr8vault
+sudo chmod +x /usr/local/bin/vibr8vault
+```
+
+### 2. Start the Vibr8Vault backend
+
+For a quick test, use dev mode:
+
+```bash
+vibr8vault --dev
+```
+
+For production, create a config file and a systemd service. See the [backend docs](https://github.com/vibr8soft/Vibr8Vault) for details.
+
+### 3. Clone and build the Web UI
+
+```bash
+# Clone the repository
+git clone https://github.com/vibr8soft/Vibr8Vault.git /opt/vibr8vault
+cd /opt/vibr8vault/web-ui
+
+# Install dependencies
+npm ci
+
+# Build for production — set your backend URL
+NEXT_PUBLIC_API_URL=https://vault.example.com npm run build
+```
+
+> **Note:** `NEXT_PUBLIC_API_URL` is inlined at build time. If you change the backend address later, you must rebuild.
+
+### 4. Create a system user
+
+```bash
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin vibr8vault-ui
+sudo chown -R vibr8vault-ui:vibr8vault-ui /opt/vibr8vault/web-ui
+```
+
+### 5. Create a systemd service
+
+```bash
+sudo tee /etc/systemd/system/vibr8vault-ui.service > /dev/null <<'EOF'
+[Unit]
+Description=Vibr8Vault Web UI
+After=network.target
+
+[Service]
+Type=simple
+User=vibr8vault-ui
+Group=vibr8vault-ui
+WorkingDirectory=/opt/vibr8vault/web-ui
+ExecStart=/usr/bin/node /opt/vibr8vault/web-ui/.next/standalone/server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+Enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable vibr8vault-ui
+sudo systemctl start vibr8vault-ui
+
+# Check status
+sudo systemctl status vibr8vault-ui
+```
+
+### 6. Configure Nginx reverse proxy
+
+```bash
+sudo tee /etc/nginx/sites-available/vibr8vault-ui > /dev/null <<'EOF'
+server {
+    listen 80;
+    server_name vault.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+EOF
+
+sudo ln -s /etc/nginx/sites-available/vibr8vault-ui /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 7. Enable HTTPS with Let's Encrypt (recommended)
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d vault.example.com
+```
+
+Certbot automatically configures Nginx for TLS and sets up auto-renewal.
+
+### 8. Verify
+
+Open `https://vault.example.com` in your browser. You should see the Vibr8Vault login page.
+
+### Updating
+
+To update the Web UI after pulling new changes:
+
+```bash
+cd /opt/vibr8vault/web-ui
+git pull
+npm ci
+NEXT_PUBLIC_API_URL=https://vault.example.com npm run build
+
+# Copy standalone static assets (required after rebuild)
+cp -r .next/static .next/standalone/.next/static
+cp -r public .next/standalone/public
+
+sudo systemctl restart vibr8vault-ui
+```
+
 ## Environment Variables
 
 | Variable              | Required | Default                 | Description                                            |
