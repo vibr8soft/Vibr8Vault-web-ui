@@ -47,7 +47,18 @@ function UserTokenView({ token }: { token: string | null }) {
   const handleCopy = async () => {
     if (!token) return;
     try {
-      await navigator.clipboard.writeText(token);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(token);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = token;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -229,7 +240,18 @@ export default function TokensPage() {
   const handleCopy = async () => {
     if (!createdToken) return;
     try {
-      await navigator.clipboard.writeText(createdToken);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(createdToken);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = createdToken;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
