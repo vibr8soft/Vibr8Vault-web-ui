@@ -40,29 +40,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { TokenListItem } from '@vibr8vault/sdk';
+import { copyToClipboard } from '@/lib/utils';
 
 function UserTokenView({ token }: { token: string | null }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     if (!token) return;
-    try {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(token);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = token;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
+    const ok = await copyToClipboard(token);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard API may fail in some contexts
     }
   };
 
@@ -115,25 +103,7 @@ function UserTokenView({ token }: { token: string | null }) {
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={async () => {
-                    try {
-                      const text = `vv config set-token ${token}`;
-                      if (navigator.clipboard) {
-                        await navigator.clipboard.writeText(text);
-                      } else {
-                        const textarea = document.createElement('textarea');
-                        textarea.value = text;
-                        textarea.style.position = 'fixed';
-                        textarea.style.opacity = '0';
-                        document.body.appendChild(textarea);
-                        textarea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(textarea);
-                      }
-                    } catch {
-                      // Clipboard write failed
-                    }
-                  }}
+                  onClick={() => copyToClipboard(`vv config set-token ${token}`)}
                   title="Copy to clipboard"
                 >
                   <Copy className="size-3" />
@@ -239,23 +209,10 @@ export default function TokensPage() {
   // Copy created token to clipboard
   const handleCopy = async () => {
     if (!createdToken) return;
-    try {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(createdToken);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = createdToken;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
+    const ok = await copyToClipboard(createdToken);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback: select the text in the input
     }
   };
 
