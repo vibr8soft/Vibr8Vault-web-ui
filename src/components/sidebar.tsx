@@ -10,6 +10,7 @@ import {
   ScrollText,
   ShieldCheck,
   FolderTree,
+  DatabaseBackup,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -38,6 +39,7 @@ const navItems = [
   { label: 'Audit', href: '/audit', icon: ScrollText, adminOnly: true },
   { label: 'Policies', href: '/policies', icon: ShieldCheck, adminOnly: true },
   { label: 'Namespaces', href: '/namespaces', icon: FolderTree, adminOnly: true },
+  { label: 'System', href: '/system', icon: DatabaseBackup, adminOnly: true },
 ];
 
 function AppSidebarContent() {
